@@ -1,0 +1,48 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kiem tra du 3 file
+        run: |
+          for f in index.html style.css script.js; do
+            if [ ! -f "$f" ]; then
+              echo "Thieu file $f"
+              exit 1
+            fi
+          done
+      - name: Kiem tra the title
+        run: |
+          if ! grep -qi "<title>" index.html; then
+            echo "index.html thieu the title"
+            exit 1
+          fi
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - run: |
+          mkdir _site
+          cp index.html style.css script.js _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
